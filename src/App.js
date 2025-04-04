@@ -1,9 +1,12 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
 
-// The API key is directly included here - this is NOT recommended for production
-// Only for local testing purposes
-const GEMINI_API_KEY = "AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY";
+// API key directly included for local testing
+const API_KEY = "AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY";
+
+// Define the API endpoints
+const GEMINI_PRO_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
+const GEMINI_VISION_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${API_KEY}`;
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -15,6 +18,20 @@ function App() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+  const chatWindowRef = useRef(null);
+
+  // Auto-scroll function
+  const scrollToBottom = () => {
+    if (chatWindowRef.current) {
+      const { scrollHeight, clientHeight } = chatWindowRef.current;
+      chatWindowRef.current.scrollTop = scrollHeight - clientHeight;
+    }
+  };
+
+  // Scroll when messages update
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Handle file selection for image upload
   const handleFileChange = (e) => {
@@ -44,15 +61,13 @@ function App() {
     setItemName("");
   };
 
-  // Direct call to Gemini Pro API
+  // Function to call Gemini Pro API
   const callGeminiProAPI = async (message) => {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
-      {
+    try {
+      const response = await fetch(GEMINI_PRO_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": GEMINI_API_KEY,
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: message }] }],
@@ -61,22 +76,31 @@ function App() {
             maxOutputTokens: 800,
           },
         }),
-      }
-    );
+      });
 
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          error: { message: "Failed to parse error response." }
+        }));
+        
+        throw new Error(`API Error: ${response.status} ${response.statusText}. ${errorData?.error?.message || ''}`);
+      }
+
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text;
+    } catch (error) {
+      console.error("Error calling Gemini Pro API:", error);
+      throw error;
+    }
   };
 
-  // Direct call to Gemini Pro Vision API for image analysis
-  const callGeminiVisionAPI = async (imageBase64, mimeType) => {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent",
-      {
+  // Function to call Gemini Vision API
+  const callGeminiVisionAPI = async (imageBase64) => {
+    try {
+      const response = await fetch(GEMINI_VISION_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": GEMINI_API_KEY,
         },
         body: JSON.stringify({
           contents: [
@@ -87,7 +111,7 @@ function App() {
                 },
                 {
                   inlineData: {
-                    mimeType: mimeType,
+                    mimeType: "image/jpeg",
                     data: imageBase64
                   }
                 }
@@ -99,14 +123,25 @@ function App() {
             maxOutputTokens: 100,
           },
         }),
-      }
-    );
+      });
 
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          error: { message: "Failed to parse error response." }
+        }));
+        
+        throw new Error(`Vision API Error: ${response.status} ${response.statusText}. ${errorData?.error?.message || ''}`);
+      }
+
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text;
+    } catch (error) {
+      console.error("Error calling Gemini Vision API:", error);
+      throw error;
+    }
   };
 
-  // Purchase analysis function with direct API calls
+  // Purchase analysis function
   const analyzePurchase = async () => {
     if (!itemCost.trim()) {
       alert("Please enter the cost of the item");
@@ -124,19 +159,19 @@ function App() {
       let recognizedItemName = itemName;
       let itemFact = "";
 
-      // If there's an image, process it directly with Gemini Vision API
+      // If there's an image, process it with Gemini Vision API
       if (imageFile) {
-        // Convert the image file to base64
+        // Convert image to base64
         const base64Image = await new Promise((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result.split(',')[1]);
           reader.readAsDataURL(imageFile);
         });
 
-        // Call the Gemini Vision API directly
-        const identificationText = await callGeminiVisionAPI(base64Image, imageFile.type);
+        // Call the Gemini Vision API
+        const identificationText = await callGeminiVisionAPI(base64Image);
         
-        // Parse the identification text to extract item name and fact
+        // Parse the identification text
         const itemMatch = identificationText.match(/Item:\s*(.+)/i);
         const factMatch = identificationText.match(/Fact:\s*(.+)/i);
         
@@ -204,7 +239,7 @@ function App() {
         ...messages,
         {
           sender: "Munger",
-          text: "Sorry, I couldn't analyze this purchase right now. Technical error occurred.",
+          text: "Sorry, I couldn't analyze this purchase right now. Technical error occurred: " + error.message,
         },
       ]);
     } finally {
@@ -308,7 +343,7 @@ function App() {
 
       {/* Results Window */}
       {messages.length > 0 && (
-        <div className="results-window">
+        <div className="results-window" ref={chatWindowRef}>
           {messages.map((msg, i) => (
             <div key={i} className={`message ${msg.sender.toLowerCase()}`}>
               <strong>{msg.sender === "System" ? "💡" : msg.sender}:</strong> {msg.text}
