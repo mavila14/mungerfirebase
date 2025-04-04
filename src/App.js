@@ -108,8 +108,15 @@ function App() {
 
   return (
     <div className="App">
-      <h2>MungerFirebase AI 🤖</h2>
-      
+      {/* Hero Section */}
+      <div className="hero-section">
+        <div className="hero-badge">Powered by Gemini 2.5 Pro</div>
+        <h1 className="hero-title">MungerFirebase AI</h1>
+        <p className="hero-subtitle">
+          Get financial advice from AI trained on Charlie Munger's principles
+        </p>
+      </div>
+
       {/* Tab Navigation */}
       <div className="tab-container">
         <button 
@@ -124,31 +131,35 @@ function App() {
         </button>
       </div>
 
-      {/* Message Display Area */}
-      <div className="chat-window">
-        {messages.map((msg, i) => (
-          <div key={i} className={`message ${msg.sender.toLowerCase()}`}>
-            <strong>{msg.sender}:</strong> {msg.text}
-          </div>
-        ))}
-        {loading && <div className="loading">Thinking...</div>}
-      </div>
-
-      {/* Input Area - changes based on active tab */}
+      {/* Main Content Based on Selected Tab */}
       {activeTab === "chat" ? (
-        <div className="input-area">
-          <input
-            type="text"
-            value={input}
-            placeholder="Type your question..."
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
-          <button onClick={sendMessage} disabled={loading}>
-            Send
-          </button>
-        </div>
+        <>
+          {/* Chat Window */}
+          <div className="chat-window">
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.sender.toLowerCase()}`}>
+                <strong>{msg.sender}:</strong> {msg.text}
+              </div>
+            ))}
+            {loading && <div className="loading">Thinking...</div>}
+          </div>
+
+          {/* Chat Input */}
+          <div className="input-area">
+            <input
+              type="text"
+              value={input}
+              placeholder="Type your question..."
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
+            <button onClick={sendMessage} disabled={loading}>
+              {loading ? "Thinking..." : "Send"}
+            </button>
+          </div>
+        </>
       ) : (
+        /* Purchase Analysis Form */
         <div className="purchase-form">
           <div className="form-group">
             <label>Item Name:</label>
@@ -191,7 +202,11 @@ function App() {
               <option value="One-time">One-time use</option>
             </select>
           </div>
-          <button onClick={analyzePurchase} disabled={loading} className="analyze-btn">
+          <button 
+            onClick={analyzePurchase} 
+            disabled={loading} 
+            className="analyze-btn"
+          >
             {loading ? "Analyzing..." : "Get Munger's Advice"}
           </button>
         </div>

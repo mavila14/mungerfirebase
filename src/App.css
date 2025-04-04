@@ -1,32 +1,383 @@
+/* GENERAL RESET & BODY STYLES */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: #334155;
+  background: #f8f9fa;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* GLOBAL VARIABLES */
+:root {
+  --primary-color: #6366F1;        /* Indigo 500 */
+  --primary-dark: #4f46e5;         /* Indigo 600 */
+  --primary-hover: #4338ca;        /* Indigo 700 */
+  --secondary-color: #6366F1;      /* Same as primary for consistency */
+  --secondary-hover: #4f46e5;      /* Same as primary-dark for consistency */
+  --hero-bg: #6366F1;              /* Match primary color */
+  --danger-color: #ef4444;         /* Red 500 */
+  --success-color: #10b981;        /* Emerald 500 */
+  --text-dark: #1e293b;            /* Slate 800 */
+  --text-medium: #475569;          /* Slate 600 */
+  --text-light: #64748b;           /* Slate 500 */
+  --text-lighter: #94a3b8;         /* Slate 400 */
+  --border-color: #e2e8f0;         /* Slate 200 */
+  --background-light: #f8fafc;     /* Slate 50 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* LAYOUT CONTAINER */
 .App {
-  text-align: center;
-  padding: 2rem;
-  font-family: Arial, sans-serif;
-  background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0;
 }
 
-.chat-window {
-  border: 1px solid #ccc;
-  padding: 1rem;
-  height: 300px;
-  overflow-y: auto;
-  margin-bottom: 1rem;
-  background: #fff;
-  text-align: left;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+/* TOP HEADER BAR */
+.top-header {
+  background-color: #ffffff;
+  width: 100%;
+  padding: 16px 24px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+  position: sticky;
+  top: 0;
 }
 
-input {
-  width: 60%;
+.logo {
+  color: var(--primary-color);
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* HERO SECTION STYLING */
+.hero-section {
+  background-color: var(--hero-bg);
+  padding: 60px 20px;
+  text-align: center;
+  border-radius: 0;
+  margin-bottom: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 16px;
+  letter-spacing: -0.025em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: slideInDown 0.7s ease-out;
+  text-align: center;
+}
+
+.hero-subtitle {
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 800px;
+  margin: 0 auto 30px auto;
+  font-weight: 400;
+  animation: slideInUp 0.7s ease-out 0.2s;
+  animation-fill-mode: both;
+  text-align: center;
+}
+
+/* TAB NAVIGATION */
+.tab-container {
+  display: flex;
+  justify-content: center;
+  margin: -40px auto 40px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
   padding: 0.5rem;
+  position: relative;
+  z-index: 5;
+  max-width: 600px;
+  width: 100%;
+}
+
+.tab {
+  flex: 1;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-medium);
+  transition: all 0.3s ease;
+}
+
+.tab.active {
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.tab:hover:not(.active) {
+  background-color: var(--background-light);
+  color: var(--primary-color);
+}
+
+/* CHAT WINDOW */
+.chat-window {
+  background-color: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto 30px;
+  position: relative;
+  z-index: 5;
+  animation: slideUp 0.6s ease-out forwards;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  height: 350px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+/* MESSAGE STYLING */
+.message {
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.message.you {
+  background-color: rgba(99, 102, 241, 0.1);
+  border-left: 3px solid var(--primary-color);
+  margin-right: 20px;
+}
+
+.message.ai, .message.munger {
+  background-color: var(--background-light);
+  border-left: 3px solid var(--success-color);
+  margin-left: 20px;
+}
+
+.loading {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-medium);
+  margin: 16px 0;
+  animation: pulse 2s infinite;
+}
+
+/* INPUT AREA */
+.input-area {
+  display: flex;
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+input[type="text"], 
+input[type="number"], 
+select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  transition: all 0.3s ease;
   font-size: 16px;
+  background-color: var(--background-light);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px);
 }
 
 button {
-  padding: 0.5rem 1rem;
-  margin-left: 0.5rem;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  padding: 14px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
   font-size: 16px;
+  margin-left: 10px;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+button:disabled {
+  background-color: var(--text-lighter);
+  cursor: not-allowed;
+}
+
+/* PURCHASE FORM */
+.purchase-form {
+  background-color: #ffffff;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto 40px;
+  position: relative;
+  z-index: 5;
+  animation: slideUp 0.6s ease-out forwards;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  text-align: left;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-medium);
+  transition: all 0.2s ease;
+}
+
+.analyze-btn {
+  background-color: var(--success-color);
+  width: 100%;
+  margin-top: 24px;
+  padding: 16px 24px;
+  font-weight: 700;
+  font-size: 18px;
+  text-align: center;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.analyze-btn:hover:not(:disabled) {
+  background-color: #0d9668;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+}
+
+/* ANIMATIONS */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .tab-container {
+    margin: -20px 20px 30px;
+  }
+  
+  .chat-window, 
+  .purchase-form, 
+  .input-area {
+    margin-left: 20px;
+    margin-right: 20px;
+    padding: 20px;
+  }
+  
+  .input-area {
+    flex-direction: column;
+  }
+  
+  button {
+    margin-left: 0;
+    margin-top: 10px;
+    width: 100%;
+  }
+  
+  .hero-section {
+    padding: 40px 20px;
+  }
+  
+  .hero-title {
+    font-size: 2.25rem;
+  }
 }
