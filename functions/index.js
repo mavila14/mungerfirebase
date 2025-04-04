@@ -35,7 +35,7 @@ exports.chatWithAI = functions.https.onRequest((req, res) => {
         {
           headers: {
             "Content-Type": "application/json",
-            "x-goog-api-key": "YOUR_GEMINI_API_KEY", // Replace with your actual API key
+            "x-goog-api-key": "AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY", // Replace with your actual API key
           },
         }
       );
@@ -123,7 +123,7 @@ exports.identifyImage = functions.https.onRequest((req, res) => {
         {
           headers: {
             "Content-Type": "application/json",
-            "x-goog-api-key": "YOUR_GEMINI_API_KEY", // Replace with your actual API key
+            "x-goog-api-key": "AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY", // Replace with your actual API key
           },
         }
       );
