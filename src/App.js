@@ -1,359 +1,367 @@
-import React, { useState, useRef, useEffect } from "react";
-import "./App.css";
-
-// API key directly included for local testing
-const API_KEY = "AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY";
-
-// Define the API endpoints
-const GEMINI_PRO_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
-const GEMINI_VISION_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-vision:generateContent?key=${API_KEY}`;
-
-function App() {
-  const [messages, setMessages] = useState([]);
-  const [itemName, setItemName] = useState("");
-  const [itemCost, setItemCost] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [frequency, setFrequency] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const fileInputRef = useRef(null);
-  const chatWindowRef = useRef(null);
-
-  // Auto-scroll function
-  const scrollToBottom = () => {
-    if (chatWindowRef.current) {
-      const { scrollHeight, clientHeight } = chatWindowRef.current;
-      chatWindowRef.current.scrollTop = scrollHeight - clientHeight;
-    }
-  };
-
-  // Scroll when messages update
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Handle file selection for image upload
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      // Create a preview URL for the image
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      // Reset the item name since we'll get it from image recognition
-      setItemName("");
-    }
-  };
-
-  // Trigger file input click
-  const triggerFileInput = () => {
-    fileInputRef.current.click();
-  };
-
-  // Clear the selected image
-  const clearImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    setItemName("");
-  };
-
-  // Function to call Gemini Pro API
-  const callGeminiProAPI = async (message) => {
-    try {
-      const response = await fetch(GEMINI_PRO_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: message }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 800,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: { message: "Failed to parse error response." }
-        }));
-        
-        throw new Error(`API Error: ${response.status} ${response.statusText}. ${errorData?.error?.message || ''}`);
-      }
-
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      console.error("Error calling Gemini Pro API:", error);
-      throw error;
-    }
-  };
-
-  // Function to call Gemini Vision API
-  const callGeminiVisionAPI = async (imageBase64) => {
-    try {
-      const response = await fetch(GEMINI_VISION_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: "Identify what this object is in a single short phrase (3-5 words maximum). Then on a new line, provide one interesting fact or detail about this type of item that would be relevant when deciding whether to purchase it. Format your response exactly like this: 'Item: [name of item]\\nFact: [one interesting fact]'"
-                },
-                {
-                  inlineData: {
-                    mimeType: "image/jpeg",
-                    data: imageBase64
-                  }
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 100,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: { message: "Failed to parse error response." }
-        }));
-        
-        throw new Error(`Vision API Error: ${response.status} ${response.statusText}. ${errorData?.error?.message || ''}`);
-      }
-
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      console.error("Error calling Gemini Vision API:", error);
-      throw error;
-    }
-  };
-
-  // Purchase analysis function
-  const analyzePurchase = async () => {
-    if (!itemCost.trim()) {
-      alert("Please enter the cost of the item");
-      return;
-    }
-
-    if (!imageFile && !itemName.trim()) {
-      alert("Please either upload an image or enter the item name");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      let recognizedItemName = itemName;
-      let itemFact = "";
-
-      // If there's an image, process it with Gemini Vision API
-      if (imageFile) {
-        // Convert image to base64
-        const base64Image = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result.split(',')[1]);
-          reader.readAsDataURL(imageFile);
-        });
-
-        // Call the Gemini Vision API
-        const identificationText = await callGeminiVisionAPI(base64Image);
-        
-        // Parse the identification text
-        const itemMatch = identificationText.match(/Item:\s*(.+)/i);
-        const factMatch = identificationText.match(/Fact:\s*(.+)/i);
-        
-        if (itemMatch) {
-          recognizedItemName = itemMatch[1].trim();
-          itemFact = factMatch ? factMatch[1].trim() : "No information available";
-          
-          // Update the displayed item name
-          setItemName(recognizedItemName);
-          
-          // Add the recognition message
-          setMessages([
-            { 
-              sender: "System", 
-              text: `Identified: ${recognizedItemName}. ${itemFact}` 
-            }
-          ]);
-        } else {
-          setMessages([
-            { 
-              sender: "System", 
-              text: "Couldn't identify the image. Please enter the item name manually." 
-            }
-          ]);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Format the message about the purchase
-      const purchaseMessage = `Should I buy: ${recognizedItemName} for $${itemCost}${
-        purpose ? `, Purpose: ${purpose}` : ""
-      }${frequency ? `, Frequency of use: ${frequency}` : ""}`;
-
-      const newMessages = [
-        ...messages,
-        { sender: "You", text: purchaseMessage },
-      ];
-      setMessages(newMessages);
-
-      // Format the analysis prompt for Munger's advice
-      const analysisPrompt = `Act as Charlie Munger, Warren Buffett's business partner, and analyze this purchase decision: 
-      Item: ${recognizedItemName}
-      Cost: $${itemCost}
-      ${purpose ? `Purpose: ${purpose}` : ""}
-      ${frequency ? `Frequency of use: ${frequency}` : ""}
-      
-      Provide only a clear "Buy" or "Don't Buy" recommendation followed by your reasoning in 2-3 short sentences using principles of rational decision-making, opportunity cost, and long-term value. Keep your response concise and direct.`;
-
-      // Call the Gemini Pro API directly
-      const reply = await callGeminiProAPI(analysisPrompt);
-      
-      setMessages([...newMessages, { sender: "Munger", text: reply }]);
-
-      // Reset fields except the recognized item name
-      setItemCost("");
-      setPurpose("");
-      setFrequency("");
-      setImageFile(null);
-      setImagePreview(null);
-      
-    } catch (error) {
-      console.error("Error:", error);
-      setMessages([
-        ...messages,
-        {
-          sender: "Munger",
-          text: "Sorry, I couldn't analyze this purchase right now. Technical error occurred: " + error.message,
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="App">
-      {/* Hero Section */}
-      <div className="hero-section">
-        <h1 className="hero-title">Munger Purchase Advisor</h1>
-        <p className="hero-subtitle">
-          Should you buy it? Get Charlie Munger's advice on your purchases
-        </p>
-      </div>
-
-      {/* Purchase Analysis Form */}
-      <div className="purchase-form">
-        {/* Image Upload Section */}
-        <div className="image-upload-section">
-          <div className="image-upload-container" onClick={triggerFileInput}>
-            {imagePreview ? (
-              <div className="image-preview-wrapper">
-                <img src={imagePreview} alt="Item preview" className="image-preview" />
-                <button className="clear-image-btn" onClick={(e) => {
-                  e.stopPropagation();
-                  clearImage();
-                }}>×</button>
-              </div>
-            ) : (
-              <div className="upload-placeholder">
-                <div className="upload-icon">📷</div>
-                <p>Click to upload an image of the item</p>
-              </div>
-            )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              className="file-input"
-              capture="environment"
-            />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label>Item Name:</label>
-          <input
-            type="text"
-            value={itemName}
-            onChange={(e) => setItemName(e.target.value)}
-            placeholder={imageFile ? "Identifying..." : "What are you considering buying?"}
-            disabled={loading}
-          />
-        </div>
-        <div className="form-group">
-          <label>Cost ($):</label>
-          <input
-            type="number"
-            value={itemCost}
-            onChange={(e) => setItemCost(e.target.value)}
-            placeholder="How much does it cost?"
-            disabled={loading}
-          />
-        </div>
-        <div className="form-group">
-          <label>Purpose (optional):</label>
-          <input
-            type="text"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            placeholder="What will you use it for?"
-            disabled={loading}
-          />
-        </div>
-        <div className="form-group">
-          <label>Frequency of Use (optional):</label>
-          <select 
-            value={frequency} 
-            onChange={(e) => setFrequency(e.target.value)}
-            disabled={loading}
-          >
-            <option value="">Select frequency...</option>
-            <option value="Daily">Daily</option>
-            <option value="Weekly">Weekly</option>
-            <option value="Monthly">Monthly</option>
-            <option value="Rarely">Rarely</option>
-            <option value="One-time">One-time use</option>
-          </select>
-        </div>
-        <button 
-          onClick={analyzePurchase} 
-          disabled={loading} 
-          className="analyze-btn"
-        >
-          {loading ? "Analyzing..." : "Get Munger's Advice"}
-        </button>
-      </div>
-
-      {/* Results Window */}
-      {messages.length > 0 && (
-        <div className="results-window" ref={chatWindowRef}>
-          {messages.map((msg, i) => (
-            <div key={i} className={`message ${msg.sender.toLowerCase()}`}>
-              <strong>{msg.sender === "System" ? "💡" : msg.sender}:</strong> {msg.text}
-            </div>
-          ))}
-          {loading && <div className="loading">Analyzing...</div>}
-        </div>
-      )}
-    </div>
-  );
+/* GENERAL RESET & BODY STYLES */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-export default App;
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #334155;
+  background: #f1f5f9;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* GLOBAL VARIABLES */
+:root {
+  --primary-color: #6366F1;        /* Indigo 500 */
+  --primary-dark: #4f46e5;         /* Indigo 600 */
+  --primary-hover: #4338ca;        /* Indigo 700 */
+  --secondary-color: #3b82f6;      /* Blue 500 */
+  --secondary-hover: #2563eb;      /* Blue 600 */
+  --accent-color: #10b981;         /* Emerald 500 */
+  --accent-hover: #059669;         /* Emerald 600 */
+  --danger-color: #ef4444;         /* Red 500 */
+  --success-color: #10b981;        /* Emerald 500 */
+  --text-dark: #1e293b;            /* Slate 800 */
+  --text-medium: #475569;          /* Slate 600 */
+  --text-light: #64748b;           /* Slate 500 */
+  --text-lighter: #94a3b8;         /* Slate 400 */
+  --border-color: #e2e8f0;         /* Slate 200 */
+  --background-light: #f8fafc;     /* Slate 50 */
+  --background-card: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+/* LAYOUT CONTAINER */
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  padding: 0;
+  position: relative;
+}
+
+/* TOP HEADER BAR */
+.top-header {
+  background-color: var(--background-card);
+  width: 100%;
+  padding: 16px 24px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.logo {
+  color: var(--primary-color);
+  margin: 0 auto;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.5s ease-out;
+  max-width: 600px;
+  width: 100%;
+}
+
+.logo-icon {
+  font-size: 24px;
+}
+
+/* HERO SECTION STYLING */
+.hero-section {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  padding: 100px 20px 60px;
+  text-align: center;
+  border-radius: 0;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.8s ease-out;
+  margin-bottom: 0;
+  box-shadow: var(--shadow-md);
+}
+
+.hero-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 16px;
+  letter-spacing: -0.025em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: slideInDown 0.7s ease-out;
+  text-align: center;
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 600px;
+  margin: 0 auto 30px auto;
+  font-weight: 400;
+  animation: slideInUp 0.7s ease-out 0.2s;
+  animation-fill-mode: both;
+  text-align: center;
+}
+
+/* PURCHASE FORM */
+.purchase-form {
+  background-color: var(--background-card);
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: calc(100% - 40px);
+  margin: -40px auto 30px;
+  position: relative;
+  z-index: 5;
+  animation: slideUp 0.6s ease-out forwards;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.form-title {
+  font-size: 1.5rem;
+  color: var(--text-dark);
+  margin-bottom: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-medium);
+  font-size: 0.95rem;
+}
+
+/* INPUT STYLING */
+.input-field,
+.select-field {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
+  font-size: 16px;
+  background-color: var(--background-light);
+  color: var(--text-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.input-field:focus,
+.select-field:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-focus);
+}
+
+.input-field:hover,
+.select-field:hover {
+  border-color: var(--text-light);
+}
+
+.input-field:disabled,
+.select-field:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background-color: #f3f4f6;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.select-field {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+/* IMAGE CAPTURE SECTION */
+.image-capture-section {
+  margin: 30px 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--background-light);
+  border: 1px dashed var(--border-color);
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.image-capture-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.camera-btn,
+.upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
+  font-weight: 500;
+  font-size: 16px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.camera-btn {
+  background-color: var(--accent-color);
+  color: white;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+}
+
+.camera-btn:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+}
+
+.camera-icon {
+  font-size: 1.2rem;
+}
+
+.upload-btn {
+  background-color: var(--background-card);
+  color: var(--text-medium);
+  border: 1px solid var(--border-color);
+}
+
+.upload-btn:hover {
+  background-color: var(--background-light);
+  color: var(--text-dark);
+  border-color: var(--text-light);
+  transform: translateY(-2px);
+}
+
+.or-divider {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  position: relative;
+  width: 100%;
+  text-align: center;
+  max-width: 320px;
+}
+
+.or-divider::before,
+.or-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 20px);
+  height: 1px;
+  background-color: var(--border-color);
+}
+
+.or-divider::before {
+  left: 0;
+}
+
+.or-divider::after {
+  right: 0;
+}
+
+.camera-container {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.camera-preview {
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: cover;
+  display: block;
+}
+
+.camera-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 16px;
+}
+
+.capture-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: white;
+  color: var(--text-dark);
+  border: 3px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.capture-btn:hover {
+  transform: scale(1.05);
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.capture-icon {
+  font-size: 1.5rem;
+}
+
+.cancel-btn {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  backdrop-filter: blur(4px);
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.image-prev
