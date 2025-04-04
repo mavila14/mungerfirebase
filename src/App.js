@@ -19,22 +19,23 @@ function App() {
   const [imagePreview, setImagePreview] = useState(null);
   const [imageCapturing, setImageCapturing] = useState(false);
   const fileInputRef = useRef(null);
-  const chatWindowRef = useRef(null);
+  const resultsRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
   // Auto-scroll function
-  const scrollToBottom = () => {
-    if (chatWindowRef.current) {
-      const { scrollHeight, clientHeight } = chatWindowRef.current;
-      chatWindowRef.current.scrollTop = scrollHeight - clientHeight;
+  const scrollToResults = () => {
+    if (resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
   // Scroll when messages update
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      scrollToResults();
+    }
   }, [messages]);
 
   // Clean up video stream when component unmounts
@@ -224,6 +225,28 @@ function App() {
     }
   };
 
+  // Format Munger's response for better display
+  const formatMungerResponse = (text) => {
+    // Extract decision and reasoning
+    const buyMatch = text.match(/^(Buy|Don't Buy|Don't buy)[\s\:\.\,]+(.*)/i);
+    
+    if (buyMatch) {
+      const decision = buyMatch[1].trim();
+      const reasoning = buyMatch[2].trim();
+      
+      return {
+        decision: decision.toLowerCase() === "buy" ? "Buy" : "Don't Buy",
+        reasoning: reasoning
+      };
+    }
+    
+    // If pattern doesn't match, return the original text
+    return {
+      decision: "",
+      reasoning: text
+    };
+  };
+
   // Purchase analysis function
   const analyzePurchase = async () => {
     if (!itemCost.trim()) {
@@ -307,7 +330,11 @@ function App() {
       // Call the Gemini Pro API directly
       const reply = await callGeminiProAPI(analysisPrompt);
       
-      setMessages([...newMessages, { sender: "Munger", text: reply }]);
+      setMessages([...newMessages, { 
+        sender: "Munger", 
+        text: reply,
+        formatted: formatMungerResponse(reply)
+      }]);
 
       // Reset fields except the recognized item name
       setItemCost("");
@@ -323,6 +350,10 @@ function App() {
         {
           sender: "Munger",
           text: "Sorry, I couldn't analyze this purchase right now. Technical error occurred: " + error.message,
+          formatted: {
+            decision: "Error",
+            reasoning: "Technical error occurred: " + error.message
+          }
         },
       ]);
     } finally {
@@ -481,7 +512,7 @@ function App() {
         <button 
           onClick={analyzePurchase} 
           disabled={loading} 
-          className="analyze-btn"
+          className="should-i-buy-btn"
         >
           {loading ? (
             <span className="loading-text">
@@ -489,30 +520,57 @@ function App() {
               Analyzing
             </span>
           ) : (
-            "Get Munger's Advice"
+            "Should I Buy It?"
           )}
         </button>
       </div>
 
       {/* Results Window */}
       {messages.length > 0 && (
-        <div className="results-window" ref={chatWindowRef}>
+        <div className="results-window" ref={resultsRef}>
           <h2 className="results-title">
             <span className="results-icon">💡</span> 
             Analysis Results
           </h2>
           
-          {messages.map((msg, i) => (
-            <div key={i} className={`message ${msg.sender.toLowerCase()}`}>
-              <div className="message-header">
-                {msg.sender === "System" ? "💡" : 
-                 msg.sender === "Munger" ? "👨‍💼" : 
-                 msg.sender === "You" ? "🧑" : ""} 
-                <strong>{msg.sender}</strong>
-              </div>
-              <div className="message-body">{msg.text}</div>
-            </div>
-          ))}
+          <div className="analysis-container">
+            {messages.map((msg, i) => {
+              // Display differently based on sender
+              if (msg.sender === "Munger" && msg.formatted) {
+                // Format Munger's response as a decision card
+                return (
+                  <div key={i} className="decision-card">
+                    <div className={`decision-header ${msg.formatted.decision === "Buy" ? "buy" : "dont-buy"}`}>
+                      <div className="decision-icon">
+                        {msg.formatted.decision === "Buy" ? "✅" : 
+                         msg.formatted.decision === "Don't Buy" ? "❌" : "⚠️"}
+                      </div>
+                      <h3 className="decision-title">{msg.formatted.decision}</h3>
+                    </div>
+                    <div className="decision-body">
+                      <p>{msg.formatted.reasoning}</p>
+                      <div className="signature">
+                        <span className="signature-icon">👨‍💼</span>
+                        <span className="signature-text">— Charlie Munger</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else {
+                // Standard message display for other senders
+                return (
+                  <div key={i} className={`message ${msg.sender.toLowerCase()}`}>
+                    <div className="message-header">
+                      {msg.sender === "System" ? "💡" : 
+                       msg.sender === "You" ? "🧑" : ""}
+                      <strong>{msg.sender}</strong>
+                    </div>
+                    <div className="message-body">{msg.text}</div>
+                  </div>
+                );
+              }
+            })}
+          </div>
           
           {loading && (
             <div className="loading-message">
