@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { analyzeImageWithGemini, getPurchaseRecommendation } from "./geminiAPI";
+import { analyzeImageWithGemini, getPurchaseRecommendation, findCheaperAlternative } from "./geminiAPI";
 import "./App.css";
 
 function PurchaseAdvisor() {
@@ -9,10 +9,12 @@ function PurchaseAdvisor() {
   const [purpose, setPurpose] = useState("");
   const [frequency, setFrequency] = useState("");
   const [loading, setLoading] = useState(false);
+  const [findingAlternatives, setFindingAlternatives] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageCapturing, setImageCapturing] = useState(false);
   const [financialProfile, setFinancialProfile] = useState(null);
+  const [searchForAlternative, setSearchForAlternative] = useState(true);
   const fileInputRef = useRef(null);
   const resultsRef = useRef(null);
   const videoRef = useRef(null);
@@ -207,6 +209,7 @@ function PurchaseAdvisor() {
             }
           ]);
           if (loading) setLoading(false);
+          return;
         }
       }
 
@@ -225,23 +228,107 @@ function PurchaseAdvisor() {
         ];
         setMessages(newMessages);
 
+        // If search for alternatives is enabled, find cheaper alternatives
+        let alternative = null;
+        if (searchForAlternative) {
+          setFindingAlternatives(true);
+          try {
+            // Update messages to show we're searching
+            setMessages([
+              ...newMessages,
+              { 
+                sender: "System", 
+                text: "Searching for cheaper alternatives..." 
+              }
+            })}
+          </div>
+          
+          {(loading || findingAlternatives) && (
+            <div className="loading-message">
+              <span className="loading-dots"></span>
+              {loading ? "Analyzing your purchase..." : "Searching for alternatives..."}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="app-footer">
+        <p>Based on Charlie Munger's investment principles and decision-making framework</p>
+      </footer>
+    </div>
+  );
+}
+
+export default PurchaseAdvisor;
+            ]);
+            
+            alternative = await findCheaperAlternative(recognizedItemName, costValue);
+            
+            // Update messages with alternative found or not
+            if (alternative) {
+              const savings = costValue - alternative.price;
+              const savingsPercent = (savings / costValue) * 100;
+              
+              setMessages([
+                ...newMessages,
+                { 
+                  sender: "System", 
+                  text: `Found a cheaper alternative: ${alternative.name} for $${alternative.price} at ${alternative.retailer}. You could save $${savings.toFixed(2)} (${savingsPercent.toFixed(1)}%).` 
+                }
+              ]);
+            } else {
+              setMessages([
+                ...newMessages,
+                { 
+                  sender: "System", 
+                  text: "No cheaper alternatives found for this item." 
+                }
+              ]);
+            }
+          } catch (error) {
+            console.error("Error finding alternatives:", error);
+            setMessages([
+              ...newMessages,
+              { 
+                sender: "System", 
+                text: "Couldn't search for alternatives at this time." 
+              }
+            ]);
+          } finally {
+            setFindingAlternatives(false);
+          }
+        }
+
         // Get recommendation from Gemini
         const recommendation = await getPurchaseRecommendation(
           recognizedItemName, 
           costValue, 
           purpose,
           frequency,
-          financialProfile
+          financialProfile,
+          alternative
         );
         
-        setMessages([...newMessages, { 
-          sender: "Munger", 
+        // Create the final message with recommendation
+        const mungerMessage = {
+          sender: "Munger",
           text: recommendation.reasoning,
           formatted: {
             decision: recommendation.decision,
             reasoning: recommendation.reasoning
           }
-        }]);
+        };
+        
+        // Add alternative to message if found
+        if (recommendation.alternative) {
+          mungerMessage.alternative = recommendation.alternative;
+        }
+        
+        // Add the message to the list
+        setMessages(prevMessages => {
+          return [...prevMessages, mungerMessage];
+        });
 
         // Reset fields except the recognized item name
         setItemCost("");
@@ -380,7 +467,7 @@ function PurchaseAdvisor() {
           </select>
         </div>
 
-        {/* Image Capture Section - Now positioned above the Analyze button */}
+        {/* Image Capture Section */}
         <div className="image-capture-section">
           {imageCapturing ? (
             <div className="camera-container">
@@ -449,15 +536,34 @@ function PurchaseAdvisor() {
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
 
+        {/* Find Alternatives Option */}
+        <div className="alternatives-option">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={searchForAlternative}
+              onChange={(e) => setSearchForAlternative(e.target.checked)}
+              disabled={loading}
+              className="checkbox-input"
+            />
+            <span className="checkbox-text">Find cheaper alternatives online</span>
+          </label>
+        </div>
+
         <button 
           onClick={analyzePurchase} 
-          disabled={loading} 
+          disabled={loading || findingAlternatives} 
           className="should-i-buy-btn"
         >
           {loading ? (
             <span className="loading-text">
               <span className="loading-spinner"></span>
               Analyzing
+            </span>
+          ) : findingAlternatives ? (
+            <span className="loading-text">
+              <span className="loading-spinner"></span>
+              Finding Alternatives
             </span>
           ) : (
             "Should I Buy It?"
@@ -489,6 +595,25 @@ function PurchaseAdvisor() {
                     </div>
                     <div className="decision-body">
                       <p>{msg.formatted.reasoning}</p>
+                      
+                      {/* Display alternative product if available */}
+                      {msg.alternative && (
+                        <div className="alternative-product">
+                          <h4>Cheaper Alternative Found:</h4>
+                          <p><strong>{msg.alternative.name}</strong> - ${msg.alternative.price} at {msg.alternative.retailer}</p>
+                          <p>
+                            <a 
+                              href={msg.alternative.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="view-alternative-btn"
+                            >
+                              View Alternative
+                            </a>
+                          </p>
+                        </div>
+                      )}
+                      
                       <div className="signature">
                         <span className="signature-icon">👨‍💼</span>
                         <span className="signature-text">— Charlie Munger</span>
@@ -509,24 +634,3 @@ function PurchaseAdvisor() {
                   </div>
                 );
               }
-            })}
-          </div>
-          
-          {loading && (
-            <div className="loading-message">
-              <span className="loading-dots"></span>
-              Analyzing your purchase...
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer className="app-footer">
-        <p>Based on Charlie Munger's investment principles and decision-making framework</p>
-      </footer>
-    </div>
-  );
-}
-
-export default PurchaseAdvisor;
