@@ -21,6 +21,13 @@ function PurchaseAdvisor() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
+  // Function to create a Google search link
+  function createGoogleSearchLink(itemName) {
+    // Encode the item name for a search URL
+    const encodedSearch = encodeURIComponent(itemName);
+    return `https://www.google.com/search?q=${encodedSearch}`;
+  }
+
   // Load financial profile from localStorage if available
   useEffect(() => {
     const savedProfile = localStorage.getItem('financialProfile');
@@ -162,6 +169,8 @@ function PurchaseAdvisor() {
       return;
     }
 
+    // Reset previous messages when starting a new analysis
+    setMessages([]);
     setLoading(true);
 
     try {
@@ -223,7 +232,7 @@ function PurchaseAdvisor() {
         }${frequency ? `, Frequency of use: ${frequency}` : ""}`;
 
         const newMessages = [
-          ...messages,
+          ...(messages || []),
           { sender: "You", text: purchaseMessage }
         ];
         setMessages(newMessages);
@@ -248,6 +257,9 @@ function PurchaseAdvisor() {
             if (alternative) {
               const savings = costValue - alternative.price;
               const savingsPercent = (savings / costValue) * 100;
+              
+              // Create Google search link instead of direct URL
+              alternative.searchUrl = createGoogleSearchLink(alternative.name);
               
               setMessages([
                 ...newMessages,
@@ -301,6 +313,8 @@ function PurchaseAdvisor() {
         
         // Add alternative to message if found
         if (recommendation.alternative) {
+          // Ensure we're using the Google search URL instead of the direct product URL
+          recommendation.alternative.searchUrl = createGoogleSearchLink(recommendation.alternative.name);
           mungerMessage.alternative = recommendation.alternative;
         }
         
@@ -320,7 +334,7 @@ function PurchaseAdvisor() {
     } catch (error) {
       console.error("Error:", error);
       setMessages([
-        ...messages,
+        ...(messages || []),
         {
           sender: "Munger",
           text: "Sorry, I couldn't analyze this purchase right now. Technical error occurred: " + error.message,
@@ -582,12 +596,12 @@ function PurchaseAdvisor() {
                           <p><strong>{msg.alternative.name}</strong> - ${msg.alternative.price} at {msg.alternative.retailer}</p>
                           <p>
                             <a 
-                              href={msg.alternative.url} 
+                              href={msg.alternative.searchUrl || createGoogleSearchLink(msg.alternative.name)} 
                               target="_blank" 
                               rel="noopener noreferrer" 
                               className="view-alternative-btn"
                             >
-                              View Alternative
+                              Search for Alternative
                             </a>
                           </p>
                         </div>
