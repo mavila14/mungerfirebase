@@ -1,21 +1,19 @@
-import logo from './logo.svg';
+import React from 'react';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
+        <h1>👋 Welcome to MungerFirebase</h1>
+        <p>This is your React + Firebase starter app, fully deployed via GitHub CI/CD.</p>
         <a
           className="App-link"
-          href="https://reactjs.org"
+          href="https://firebase.google.com"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Learn React
+          Learn more about Firebase
         </a>
       </header>
     </div>
