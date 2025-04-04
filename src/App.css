@@ -24,6 +24,7 @@ body {
   --accent-hover: #059669;         /* Emerald 600 */
   --danger-color: #ef4444;         /* Red 500 */
   --success-color: #10b981;        /* Emerald 500 */
+  --warning-color: #f59e0b;        /* Amber 500 */
   --text-dark: #1e293b;            /* Slate 800 */
   --text-medium: #475569;          /* Slate 600 */
   --text-light: #64748b;           /* Slate 500 */
@@ -394,4 +395,454 @@ input[type="number"]::-webkit-outer-spin-button {
   background-color: #fee2e2;
   color: var(--danger-color);
   border-color: var(--danger-color);
+}
+
+/* SHOULD I BUY IT BUTTON */
+.should-i-buy-btn {
+  background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+  width: 100%;
+  margin-top: 10px;
+  padding: 18px 24px;
+  font-weight: 700;
+  font-size: 20px;
+  text-align: center;
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 12px rgba(255, 126, 95, 0.3);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.should-i-buy-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #feb47b 0%, #ff7e5f 100%);
+  z-index: -1;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.should-i-buy-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(255, 126, 95, 0.4);
+}
+
+.should-i-buy-btn:hover::before {
+  opacity: 1;
+}
+
+.should-i-buy-btn:active {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(255, 126, 95, 0.3);
+}
+
+.should-i-buy-btn:disabled {
+  background: linear-gradient(135deg, #ccc 0%, #aaa 100%);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loading-text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+/* RESULTS WINDOW */
+.results-window {
+  background-color: var(--background-card);
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 600px;
+  width: calc(100% - 40px);
+  margin: 0 auto 40px;
+  position: relative;
+  z-index: 5;
+  animation: slideUp 0.6s ease-out forwards;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  min-height: 100px;
+  text-align: left;
+}
+
+.results-title {
+  font-size: 1.4rem;
+  color: var(--text-dark);
+  margin-bottom: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.results-icon {
+  font-size: 1.4rem;
+}
+
+.analysis-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* DECISION CARD */
+.decision-card {
+  background-color: var(--background-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.decision-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.decision-header {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 700;
+}
+
+.decision-header.buy {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success-color);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.decision-header.dont-buy {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--danger-color);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.decision-icon {
+  font-size: 1.6rem;
+}
+
+.decision-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.decision-body {
+  padding: 20px;
+  font-size: 1.1rem;
+  color: var(--text-dark);
+  line-height: 1.5;
+}
+
+.decision-body p {
+  margin-bottom: 20px;
+}
+
+.signature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-style: italic;
+  color: var(--text-medium);
+  margin-top: 10px;
+  padding-top: 15px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.signature-icon {
+  font-size: 1.2rem;
+}
+
+.signature-text {
+  font-weight: 500;
+}
+
+/* MESSAGE STYLING */
+.message {
+  padding: 20px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.3s ease-out;
+  background-color: var(--background-light);
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.message:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 1rem;
+  color: var(--text-medium);
+}
+
+.message-body {
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+.message.you {
+  background-color: rgba(99, 102, 241, 0.1);
+  border-left-color: var(--primary-color);
+}
+
+.message.system {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left-color: var(--secondary-color);
+}
+
+.loading-message {
+  text-align: center;
+  color: var(--text-medium);
+  margin: 16px 0;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background-color: var(--background-light);
+}
+
+.loading-dots {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
+.loading-dots::before,
+.loading-dots::after,
+.loading-dots {
+  border-radius: 50%;
+  width: 6px;
+  height: 6px;
+  animation: loading 1.2s infinite ease-in-out;
+  background-color: var(--primary-color);
+  content: '';
+}
+
+.loading-dots::before,
+.loading-dots::after {
+  content: '';
+  position: absolute;
+  top: 0;
+}
+
+.loading-dots::before {
+  left: -10px;
+  animation-delay: -0.32s;
+}
+
+.loading-dots::after {
+  left: 10px;
+  animation-delay: 0.32s;
+}
+
+/* FOOTER */
+.app-footer {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  margin-top: auto;
+  background-color: var(--background-light);
+  border-top: 1px solid var(--border-color);
+}
+
+/* ANIMATIONS */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loading {
+  0%, 80%, 100% { 
+    transform: scale(0);
+  } 
+  40% { 
+    transform: scale(1.0);
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 90px 20px 40px;
+  }
+  
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .purchase-form,
+  .results-window {
+    margin-left: 20px;
+    margin-right: 20px;
+    padding: 24px;
+    width: calc(100% - 40px);
+  }
+  
+  .form-title, 
+  .results-title {
+    font-size: 1.25rem;
+  }
+  
+  .image-capture-section {
+    padding: 15px;
+  }
+  
+  .camera-preview {
+    max-height: 280px;
+  }
+  
+  .camera-controls {
+    padding: 12px;
+  }
+  
+  .capture-btn {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .input-field, 
+  .select-field,
+  button {
+    padding: 12px 16px;
+  }
+  
+  .decision-title {
+    font-size: 1.4rem;
+  }
+  
+  .decision-body {
+    font-size: 1rem;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-section {
+    padding: 80px 16px 30px;
+  }
+  
+  .hero-title {
+    font-size: 1.75rem;
+  }
+  
+  .purchase-form,
+  .results-window {
+    padding: 20px;
+    margin-left: 16px;
+    margin-right: 16px;
+    width: calc(100% - 32px);
+  }
+  
+  .message {
+    padding: 16px;
+  }
+  
+  .logo {
+    font-size: 16px;
+  }
+  
+  .should-i-buy-btn {
+    font-size: 18px;
+    padding: 16px;
+  }
 }
