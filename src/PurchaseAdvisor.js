@@ -1,12 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
+import { analyzeImageWithGemini, getPurchaseRecommendation } from "./geminiAPI";
 import "./App.css";
-
-// API key directly included for local testing
-const API_KEY = "AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY";
-
-// Define the API endpoints
-const GEMINI_PRO_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
-const GEMINI_VISION_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-vision:generateContent?key=${API_KEY}`;
 
 function PurchaseAdvisor() {
   const [messages, setMessages] = useState([]);
@@ -154,109 +148,6 @@ function PurchaseAdvisor() {
     setItemName("");
   };
 
-  // Function to call Gemini Pro API
-  const callGeminiProAPI = async (message) => {
-    try {
-      const response = await fetch(GEMINI_PRO_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: message }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 800,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: { message: "Failed to parse error response." }
-        }));
-        
-        throw new Error(`API Error: ${response.status} ${response.statusText}. ${errorData?.error?.message || ''}`);
-      }
-
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      console.error("Error calling Gemini Pro API:", error);
-      throw error;
-    }
-  };
-
-  // Function to call Gemini Vision API
-  const callGeminiVisionAPI = async (imageBase64) => {
-    try {
-      const response = await fetch(GEMINI_VISION_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: "Identify what this object is in a single short phrase (3-5 words maximum). Then on a new line, provide one interesting fact or detail about this type of item that would be relevant when deciding whether to purchase it. Format your response exactly like this: 'Item: [name of item]\nFact: [one interesting fact]'"
-                },
-                {
-                  inlineData: {
-                    mimeType: "image/jpeg",
-                    data: imageBase64
-                  }
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 100,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: { message: "Failed to parse error response." }
-        }));
-        
-        throw new Error(`Vision API Error: ${response.status} ${response.statusText}. ${errorData?.error?.message || ''}`);
-      }
-
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      console.error("Error calling Gemini Vision API:", error);
-      throw error;
-    }
-  };
-
-  // Format Munger's response for better display
-  const formatMungerResponse = (text) => {
-    // Extract decision and reasoning
-    // Fixed unnecessary escape characters in the regex character class
-    const buyMatch = text.match(/^(Buy|Don't Buy|Don't buy)[\s:.,]+(.*)/i);
-    
-    if (buyMatch) {
-      const decision = buyMatch[1].trim();
-      const reasoning = buyMatch[2].trim();
-      
-      return {
-        decision: decision.toLowerCase() === "buy" ? "Buy" : "Don't Buy",
-        reasoning: reasoning
-      };
-    }
-    
-    // If pattern doesn't match, return the original text
-    return {
-      decision: "",
-      reasoning: text
-    };
-  };
-
   // Purchase analysis function
   const analyzePurchase = async () => {
     if (!itemCost.trim()) {
@@ -273,109 +164,92 @@ function PurchaseAdvisor() {
 
     try {
       let recognizedItemName = itemName;
-      let itemFact = "";
+      let itemDetails = null;
 
       // If there's an image, process it with Gemini Vision API
       if (imageFile) {
         // Convert image to base64
         const base64Image = await new Promise((resolve) => {
           const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.onloadend = () => {
+            const base64String = reader.result.split(',')[1];
+            resolve(base64String);
+          };
           reader.readAsDataURL(imageFile);
         });
-
-        // Call the Gemini Vision API
-        const identificationText = await callGeminiVisionAPI(base64Image);
         
-        // Parse the identification text
-        const itemMatch = identificationText.match(/Item:\s*(.+)/i);
-        const factMatch = identificationText.match(/Fact:\s*(.+)/i);
+        // Call the updated Gemini Vision API
+        itemDetails = await analyzeImageWithGemini(base64Image);
         
-        if (itemMatch) {
-          recognizedItemName = itemMatch[1].trim();
-          itemFact = factMatch ? factMatch[1].trim() : "No information available";
+        if (itemDetails && itemDetails.name && itemDetails.name !== "Error") {
+          recognizedItemName = itemDetails.name;
           
           // Update the displayed item name
           setItemName(recognizedItemName);
+          
+          // If item cost is not provided by user but is in itemDetails, use that
+          if (itemCost === "" && itemDetails.cost > 0) {
+            setItemCost(itemDetails.cost.toString());
+          }
           
           // Add the recognition message
           setMessages([
             { 
               sender: "System", 
-              text: `Identified: ${recognizedItemName}. ${itemFact}` 
+              text: `Identified: ${recognizedItemName}. Estimated cost: $${itemDetails.cost}. ${itemDetails.facts}` 
             }
           ]);
         } else {
           setMessages([
             { 
               sender: "System", 
-              text: "Couldn't identify the image. Please enter the item name manually." 
+              text: "Couldn't identify the image clearly. Please enter the item name manually." 
             }
           ]);
-          setLoading(false);
-          return;
+          if (loading) setLoading(false);
         }
       }
 
-      // Format the message about the purchase
-      const purchaseMessage = `Should I buy: ${recognizedItemName} for $${itemCost}${
-        purpose ? `, Purpose: ${purpose}` : ""
-      }${frequency ? `, Frequency of use: ${frequency}` : ""}`;
-
-      const newMessages = [
-        ...messages,
-        { sender: "You", text: purchaseMessage },
-      ];
-      setMessages(newMessages);
-
-      // Create a prompt that includes financial profile data if available
-      let analysisPrompt = `Act as Charlie Munger, Warren Buffett's business partner, and analyze this purchase decision: 
-      Item: ${recognizedItemName}
-      Cost: $${itemCost}
-      ${purpose ? `Purpose: ${purpose}` : ""}
-      ${frequency ? `Frequency of use: ${frequency}` : ""}
-      `;
-      
-      // Add financial context if available
-      if (financialProfile && financialProfile.summary) {
-        const fp = financialProfile;
-        const s = fp.summary;
+      // Only proceed if we have an item name
+      if (recognizedItemName) {
+        const costValue = parseFloat(itemCost);
         
-        analysisPrompt += `\nFinancial context:
-        - Monthly Net Income: $${s.monthlyNetIncome.toFixed(2)}
-        - Debt-to-Income Ratio: ${s.debtToIncomeRatio.toFixed(1)}%
-        - Credit Utilization: ${s.creditUtilization.toFixed(1)}%
-        - Net Worth: $${s.netWorth.toFixed(2)}
-        - Emergency Fund: ${s.emergencyFundMonths.toFixed(1)} months
-        - Risk Tolerance: ${fp.riskTolerance}
-        - Purchase Timeframe: ${fp.purchaseTimeframe}
-        `;
+        // Format the message about the purchase
+        const purchaseMessage = `Should I buy: ${recognizedItemName} for $${costValue}${
+          purpose ? `, Purpose: ${purpose}` : ""
+        }${frequency ? `, Frequency of use: ${frequency}` : ""}`;
+
+        const newMessages = [
+          ...messages,
+          { sender: "You", text: purchaseMessage },
+        ];
+        setMessages(newMessages);
+
+        // Get recommendation from Gemini
+        const recommendation = await getPurchaseRecommendation(
+          recognizedItemName, 
+          costValue, 
+          purpose,
+          frequency,
+          financialProfile
+        );
         
-        if (fp.shortTermGoals || fp.midTermGoals || fp.longTermGoals) {
-          analysisPrompt += "\nFinancial Goals:";
-          if (fp.shortTermGoals) analysisPrompt += `\n- Short-term: ${fp.shortTermGoals}`;
-          if (fp.midTermGoals) analysisPrompt += `\n- Mid-term: ${fp.midTermGoals}`;
-          if (fp.longTermGoals) analysisPrompt += `\n- Long-term: ${fp.longTermGoals}`;
-        }
+        setMessages([...newMessages, { 
+          sender: "Munger", 
+          text: recommendation.reasoning,
+          formatted: {
+            decision: recommendation.decision,
+            reasoning: recommendation.reasoning
+          }
+        }]);
+
+        // Reset fields except the recognized item name
+        setItemCost("");
+        setPurpose("");
+        setFrequency("");
+        setImageFile(null);
+        setImagePreview(null);
       }
-      
-      analysisPrompt += `\nProvide only a clear "Buy" or "Don't Buy" recommendation followed by your reasoning in 2-3 short sentences using principles of rational decision-making, opportunity cost, and long-term value. Keep your response concise and direct.`;
-
-      // Call the Gemini Pro API
-      const reply = await callGeminiProAPI(analysisPrompt);
-      
-      setMessages([...newMessages, { 
-        sender: "Munger", 
-        text: reply,
-        formatted: formatMungerResponse(reply)
-      }]);
-
-      // Reset fields except the recognized item name
-      setItemCost("");
-      setPurpose("");
-      setFrequency("");
-      setImageFile(null);
-      setImagePreview(null);
       
     } catch (error) {
       console.error("Error:", error);
