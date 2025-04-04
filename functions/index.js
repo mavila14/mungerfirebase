@@ -1,86 +1,156 @@
 const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const cors = require("cors")({ origin: true });
 const axios = require("axios");
+const { Storage } = require("@google-cloud/storage");
+const path = require("path");
+const os = require("os");
+const fs = require("fs");
 
-exports.chatWithAI = functions.https.onRequest(async (req, res) => {
-  // Set CORS headers
-  res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Methods", "GET, POST");
-  res.set("Access-Control-Allow-Headers", "Content-Type");
+admin.initializeApp();
 
-  // Handle preflight
-  if (req.method === "OPTIONS") {
-    res.status(204).send("");
-    return;
-  }
+exports.chatWithAI = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      if (req.method !== "POST") {
+        return res.status(405).send("Method Not Allowed");
+      }
 
-  const userMessage = req.body.message;
+      const { message } = req.body;
 
-  if (!userMessage) {
-    return res.status(400).json({ error: "Please provide a message" });
-  }
+      if (!message) {
+        return res.status(400).json({ error: "No message provided" });
+      }
 
-  try {
-    console.log("Sending request to Gemini API with message:", userMessage);
-    
-    // Determine if this is likely a purchase analysis based on message content
-    const isPurchaseAnalysis = userMessage.toLowerCase().includes("act as charlie munger") || 
-                              userMessage.toLowerCase().includes("analyze this purchase");
-    
-    // Set appropriate parameters based on request type
-    const generationConfig = {
-      temperature: isPurchaseAnalysis ? 0.3 : 0.7, // Lower temperature for purchase analysis
-      maxOutputTokens: isPurchaseAnalysis ? 512 : 1024,
-      topP: 0.9
-    };
-    
-    // Using the appropriate model
-    const response = await axios.post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY",
+      // Make request to Gemini API with your API key
+      const response = await axios.post(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+        {
+          contents: [{ parts: [{ text: message }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 800,
+          },
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": "YOUR_GEMINI_API_KEY", // Replace with your actual API key
+          },
+        }
+      );
+
+      // Extract the response text
+      const reply = response.data.candidates[0].content.parts[0].text;
+
+      return res.status(200).json({ reply });
+    } catch (error) {
+      console.error("Error:", error);
+      return res.status(500).json({ error: "Failed to process request" });
+    }
+  });
+});
+
+exports.identifyImage = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      if (req.method !== "POST") {
+        return res.status(405).send("Method Not Allowed");
+      }
+
+      // Check if there's an image in the request
+      if (!req.files || !req.files.image) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "No image provided" 
+        });
+      }
+
+      const imageFile = req.files.image;
+      
+      // Create a temporary file path
+      const tempFilePath = path.join(os.tmpdir(), imageFile.name);
+      
+      // Write the file buffer to the temporary path
+      fs.writeFileSync(tempFilePath, imageFile.data);
+      
+      // Upload the file to Firebase Storage
+      const storage = new Storage();
+      const bucket = storage.bucket("mungerfirebase.appspot.com");
+      
+      const destination = `uploads/${Date.now()}_${imageFile.name}`;
+      await bucket.upload(tempFilePath, {
+        destination: destination,
+        metadata: {
+          contentType: imageFile.mimetype,
+        },
+      });
+      
+      // Get the public URL
+      const file = bucket.file(destination);
+      const [url] = await file.getSignedUrl({
+        action: 'read',
+        expires: '03-01-2500', // Far future expiration
+      });
+      
+      // Remove the temporary file
+      fs.unlinkSync(tempFilePath);
+      
+      // Make request to Gemini Vision API to identify the image
+      const response = await axios.post(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent",
         {
           contents: [
             {
               parts: [
-                { text: userMessage }
+                { 
+                  text: "Identify what this object is in a single short phrase (3-5 words maximum). Then on a new line, provide one interesting fact or detail about this type of item that would be relevant when deciding whether to purchase it. Format your response exactly like this: 'Item: [name of item]\nFact: [one interesting fact]'" 
+                },
+                {
+                  inlineData: {
+                    mimeType: imageFile.mimetype,
+                    data: imageFile.data.toString('base64')
+                  }
+                }
               ]
             }
           ],
-          generationConfig
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 100,
+          },
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": "YOUR_GEMINI_API_KEY", // Replace with your actual API key
+          },
         }
-    );
-
-    console.log("Received response from Gemini API");
-    
-    // Check if the response has the expected structure
-    if (response.data && 
-        response.data.candidates && 
-        response.data.candidates.length > 0 &&
-        response.data.candidates[0].content &&
-        response.data.candidates[0].content.parts &&
-        response.data.candidates[0].content.parts.length > 0) {
+      );
       
-      const aiReply = response.data.candidates[0].content.parts[0].text;
-      console.log("AI reply:", aiReply);
-      res.status(200).json({ reply: aiReply });
-    } else {
-      // Log the actual response structure for debugging
-      console.error("Unexpected response structure:", JSON.stringify(response.data));
-      throw new Error("Invalid response structure from Gemini API");
+      // Extract the response text
+      const identificationText = response.data.candidates[0].content.parts[0].text;
+      
+      // Parse the identification text to extract item name and fact
+      const itemMatch = identificationText.match(/Item:\s*(.+)/i);
+      const factMatch = identificationText.match(/Fact:\s*(.+)/i);
+      
+      const itemName = itemMatch ? itemMatch[1].trim() : "Unknown item";
+      const itemFact = factMatch ? factMatch[1].trim() : "No information available";
+      
+      return res.status(200).json({
+        success: true,
+        itemName,
+        itemFact,
+        imageUrl: url
+      });
+      
+    } catch (error) {
+      console.error("Error:", error);
+      return res.status(500).json({ 
+        success: false,
+        error: "Failed to process image" 
+      });
     }
-  } catch (error) {
-    console.error("AI Error details:", error.message);
-    
-    // Add detailed logging of the response if available
-    if (error.response) {
-      console.error("Response status:", error.response.status);
-      console.error("Response data:", JSON.stringify(error.response.data));
-    } else {
-      console.error("No response object available");
-      console.error("Full error:", error);
-    }
-    
-    res.status(500).json({
-      error: "Failed to connect to AI",
-      details: error.message || "Unknown error"
-    });
-  }
+  });
 });
