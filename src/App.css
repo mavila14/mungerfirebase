@@ -74,12 +74,14 @@ body {
   padding: 60px 20px;
   text-align: center;
   border-radius: 0;
-  margin-bottom: 0;
+  margin-bottom: 40px;
   width: 100%;
   position: relative;
   overflow: hidden;
   animation: fadeIn 0.8s ease-out;
 }
+
+/* Hero badge removed */
 
 .hero-title {
   font-size: 3.5rem;
@@ -103,47 +105,88 @@ body {
   text-align: center;
 }
 
-/* TAB NAVIGATION */
-.tab-container {
-  display: flex;
-  justify-content: center;
-  margin: -40px auto 40px;
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: var(--shadow-lg);
-  padding: 0.5rem;
-  position: relative;
-  z-index: 5;
-  max-width: 600px;
+/* IMAGE UPLOAD STYLING */
+.image-upload-section {
+  margin-bottom: 20px;
+}
+
+.image-upload-container {
   width: 100%;
-}
-
-.tab {
-  flex: 1;
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  background-color: transparent;
-  border: none;
+  height: 200px;
+  border: 2px dashed var(--border-color);
   border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
   cursor: pointer;
-  color: var(--text-medium);
   transition: all 0.3s ease;
-}
-
-.tab.active {
-  background-color: var(--primary-color);
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-
-.tab:hover:not(.active) {
   background-color: var(--background-light);
-  color: var(--primary-color);
 }
 
-/* CHAT WINDOW */
-.chat-window {
+.image-upload-container:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-light);
+}
+
+.upload-icon {
+  font-size: 2rem;
+  color: var(--text-medium);
+}
+
+.file-input {
+  display: none;
+}
+
+.image-preview-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.clear-image-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.clear-image-btn:hover {
+  background-color: var(--danger-color);
+  transform: none;
+  box-shadow: none;
+}
+
+/* RESULTS WINDOW */
+.results-window {
   background-color: #ffffff;
   padding: 32px;
   border-radius: 16px;
@@ -155,14 +198,13 @@ body {
   z-index: 5;
   animation: slideUp 0.6s ease-out forwards;
   border: 1px solid rgba(0, 0, 0, 0.05);
-  height: 350px;
-  overflow-y: auto;
+  min-height: 100px;
   text-align: left;
 }
 
 /* MESSAGE STYLING */
 .message {
-  padding: 12px;
+  padding: 16px;
   margin-bottom: 12px;
   border-radius: 12px;
   animation: fadeIn 0.3s ease-out;
@@ -171,13 +213,16 @@ body {
 .message.you {
   background-color: rgba(99, 102, 241, 0.1);
   border-left: 3px solid var(--primary-color);
-  margin-right: 20px;
 }
 
-.message.ai, .message.munger {
+.message.munger {
   background-color: var(--background-light);
   border-left: 3px solid var(--success-color);
-  margin-left: 20px;
+}
+
+.message.system {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-left: 3px solid var(--success-color);
 }
 
 .loading {
@@ -186,63 +231,6 @@ body {
   color: var(--text-medium);
   margin: 16px 0;
   animation: pulse 2s infinite;
-}
-
-/* INPUT AREA */
-.input-area {
-  display: flex;
-  background-color: #ffffff;
-  padding: 16px;
-  border-radius: 16px;
-  box-shadow: var(--shadow-md);
-  max-width: 600px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-input[type="text"], 
-input[type="number"], 
-select {
-  width: 100%;
-  padding: 14px 16px;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  transition: all 0.3s ease;
-  font-size: 16px;
-  background-color: var(--background-light);
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus,
-select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-  transform: translateY(-2px);
-}
-
-button {
-  background-color: var(--primary-color);
-  color: #ffffff;
-  padding: 14px 20px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  font-size: 16px;
-  margin-left: 10px;
-}
-
-button:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-}
-
-button:disabled {
-  background-color: var(--text-lighter);
-  cursor: not-allowed;
 }
 
 /* PURCHASE FORM */
@@ -271,6 +259,58 @@ button:disabled {
   font-weight: 600;
   color: var(--text-medium);
   transition: all 0.2s ease;
+}
+
+/* INPUT STYLING */
+input[type="text"], 
+input[type="number"], 
+select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  font-size: 16px;
+  background-color: var(--background-light);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px);
+}
+
+input:disabled,
+select:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* BUTTON STYLING */
+button {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  padding: 14px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  font-size: 16px;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+button:disabled {
+  background-color: var(--text-lighter);
+  cursor: not-allowed;
 }
 
 .analyze-btn {
@@ -351,33 +391,22 @@ button:disabled {
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-  .tab-container {
-    margin: -20px 20px 30px;
-  }
-  
-  .chat-window, 
-  .purchase-form, 
-  .input-area {
-    margin-left: 20px;
-    margin-right: 20px;
-    padding: 20px;
-  }
-  
-  .input-area {
-    flex-direction: column;
-  }
-  
-  button {
-    margin-left: 0;
-    margin-top: 10px;
-    width: 100%;
-  }
-  
   .hero-section {
     padding: 40px 20px;
   }
   
   .hero-title {
     font-size: 2.25rem;
+  }
+
+  .purchase-form,
+  .results-window {
+    margin-left: 20px;
+    margin-right: 20px;
+    padding: 20px;
+  }
+  
+  .image-upload-container {
+    height: 150px;
   }
 }
