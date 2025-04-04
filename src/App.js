@@ -1,6 +1,10 @@
 import React, { useState, useRef } from "react";
 import "./App.css";
 
+// The API key is directly included here - this is NOT recommended for production
+// Only for local testing purposes
+const GEMINI_API_KEY = "AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY";
+
 function App() {
   const [messages, setMessages] = useState([]);
   const [itemName, setItemName] = useState("");
@@ -40,7 +44,69 @@ function App() {
     setItemName("");
   };
 
-  // Purchase analysis function with image recognition
+  // Direct call to Gemini Pro API
+  const callGeminiProAPI = async (message) => {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: message }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 800,
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+  };
+
+  // Direct call to Gemini Pro Vision API for image analysis
+  const callGeminiVisionAPI = async (imageBase64, mimeType) => {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: "Identify what this object is in a single short phrase (3-5 words maximum). Then on a new line, provide one interesting fact or detail about this type of item that would be relevant when deciding whether to purchase it. Format your response exactly like this: 'Item: [name of item]\\nFact: [one interesting fact]'"
+                },
+                {
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: imageBase64
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 100,
+          },
+        }),
+      }
+    );
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+  };
+
+  // Purchase analysis function with direct API calls
   const analyzePurchase = async () => {
     if (!itemCost.trim()) {
       alert("Please enter the cost of the item");
@@ -58,24 +124,25 @@ function App() {
       let recognizedItemName = itemName;
       let itemFact = "";
 
-      // If there's an image, send it for recognition first
+      // If there's an image, process it directly with Gemini Vision API
       if (imageFile) {
-        const formData = new FormData();
-        formData.append("image", imageFile);
+        // Convert the image file to base64
+        const base64Image = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(imageFile);
+        });
 
-        const imageRes = await fetch(
-          "https://us-central1-mungerfirebase.cloudfunctions.net/identifyImage",
-          {
-            method: "POST",
-            body: formData,
-          }
-        );
-
-        const imageData = await imageRes.json();
+        // Call the Gemini Vision API directly
+        const identificationText = await callGeminiVisionAPI(base64Image, imageFile.type);
         
-        if (imageData.success) {
-          recognizedItemName = imageData.itemName;
-          itemFact = imageData.itemFact;
+        // Parse the identification text to extract item name and fact
+        const itemMatch = identificationText.match(/Item:\s*(.+)/i);
+        const factMatch = identificationText.match(/Fact:\s*(.+)/i);
+        
+        if (itemMatch) {
+          recognizedItemName = itemMatch[1].trim();
+          itemFact = factMatch ? factMatch[1].trim() : "No information available";
           
           // Update the displayed item name
           setItemName(recognizedItemName);
@@ -119,17 +186,10 @@ function App() {
       
       Provide only a clear "Buy" or "Don't Buy" recommendation followed by your reasoning in 2-3 short sentences using principles of rational decision-making, opportunity cost, and long-term value. Keep your response concise and direct.`;
 
-      const res = await fetch(
-        "https://us-central1-mungerfirebase.cloudfunctions.net/chatWithAI",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: analysisPrompt }),
-        }
-      );
-
-      const data = await res.json();
-      setMessages([...newMessages, { sender: "Munger", text: data.reply }]);
+      // Call the Gemini Pro API directly
+      const reply = await callGeminiProAPI(analysisPrompt);
+      
+      setMessages([...newMessages, { sender: "Munger", text: reply }]);
 
       // Reset fields except the recognized item name
       setItemCost("");
@@ -139,11 +199,12 @@ function App() {
       setImagePreview(null);
       
     } catch (error) {
+      console.error("Error:", error);
       setMessages([
         ...messages,
         {
           sender: "Munger",
-          text: "Sorry, I couldn't analyze this purchase right now.",
+          text: "Sorry, I couldn't analyze this purchase right now. Technical error occurred.",
         },
       ]);
     } finally {
@@ -155,7 +216,7 @@ function App() {
     <div className="App">
       {/* Hero Section */}
       <div className="hero-section">
-        <h1 className="hero-title">MungerFirebase Purchase Advisor</h1>
+        <h1 className="hero-title">Munger Purchase Advisor</h1>
         <p className="hero-subtitle">
           Should you buy it? Get Charlie Munger's advice on your purchases
         </p>
