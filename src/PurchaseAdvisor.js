@@ -224,7 +224,7 @@ function PurchaseAdvisor() {
 
         const newMessages = [
           ...messages,
-          { sender: "You", text: purchaseMessage },
+          { sender: "You", text: purchaseMessage }
         ];
         setMessages(newMessages);
 
@@ -240,27 +240,6 @@ function PurchaseAdvisor() {
                 sender: "System", 
                 text: "Searching for cheaper alternatives..." 
               }
-            })}
-          </div>
-          
-          {(loading || findingAlternatives) && (
-            <div className="loading-message">
-              <span className="loading-dots"></span>
-              {loading ? "Analyzing your purchase..." : "Searching for alternatives..."}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer className="app-footer">
-        <p>Based on Charlie Munger's investment principles and decision-making framework</p>
-      </footer>
-    </div>
-  );
-}
-
-export default PurchaseAdvisor;
             ]);
             
             alternative = await findCheaperAlternative(recognizedItemName, costValue);
@@ -349,7 +328,7 @@ export default PurchaseAdvisor;
             decision: "Error",
             reasoning: "Technical error occurred: " + error.message
           }
-        },
+        }
       ]);
     } finally {
       setLoading(false);
@@ -634,3 +613,24 @@ export default PurchaseAdvisor;
                   </div>
                 );
               }
+            })}
+          </div>
+          
+          {(loading || findingAlternatives) && (
+            <div className="loading-message">
+              <span className="loading-dots"></span>
+              {loading ? "Analyzing your purchase..." : "Searching for alternatives..."}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="app-footer">
+        <p>Based on Charlie Munger's investment principles and decision-making framework</p>
+      </footer>
+    </div>
+  );
+}
+
+export default PurchaseAdvisor;
