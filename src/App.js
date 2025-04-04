@@ -5,8 +5,8 @@ import "./App.css";
 const API_KEY = "AIzaSyB-RIjhhODp6aPTzqVcwbXD894oebXFCUY";
 
 // Define the API endpoints
-const GEMINI_PRO_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
-const GEMINI_VISION_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${API_KEY}`;
+const GEMINI_PRO_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
+const GEMINI_VISION_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-vision:generateContent?key=${API_KEY}`;
 
 function App() {
   const [messages, setMessages] = useState([]);
