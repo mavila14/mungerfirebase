@@ -49,263 +49,7 @@ function PurchaseAdvisor() {
 
   // Clean up video stream when component unmounts
   useEffect(() => {
-    return (
-    <div className="App">
-      {/* Header Bar */}
-      <header className="top-header">
-        <div className="logo">
-          <span className="logo-icon">💰</span>
-          Munger Purchase Advisor
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <div className="hero-section">
-        <h1 className="hero-title">Should You Buy It?</h1>
-        <p className="hero-subtitle">
-          Get Charlie Munger's rational advice on your purchasing decisions
-        </p>
-      </div>
-
-      {/* Financial Profile Summary (if available) */}
-      {financialProfile && financialProfile.summary && (
-        <div className="mini-profile">
-          <div className="mini-profile-header">
-            <h3>
-              <span className="profile-icon">👤</span>
-              Your Financial Snapshot
-            </h3>
-          </div>
-          <div className="mini-profile-stats">
-            <div className="mini-stat">
-              <span className="stat-label">Monthly Net:</span>
-              <span className={`stat-value ${financialProfile.summary.monthlyNetIncome >= 0 ? 'positive' : 'negative'}`}>
-                ${financialProfile.summary.monthlyNetIncome.toFixed(0)}
-              </span>
-            </div>
-            <div className="mini-stat">
-              <span className="stat-label">DTI Ratio:</span>
-              <span className={`stat-value ${financialProfile.summary.debtToIncomeRatio < 36 ? 'positive' : financialProfile.summary.debtToIncomeRatio < 43 ? 'warning' : 'negative'}`}>
-                {financialProfile.summary.debtToIncomeRatio.toFixed(0)}%
-              </span>
-            </div>
-            <div className="mini-stat">
-              <span className="stat-label">Emergency:</span>
-              <span className={`stat-value ${financialProfile.summary.emergencyFundMonths >= 3 ? 'positive' : financialProfile.summary.emergencyFundMonths >= 1 ? 'warning' : 'negative'}`}>
-                {financialProfile.summary.emergencyFundMonths.toFixed(1)}mo
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Purchase Analysis Form */}
-      <div className="purchase-form">
-        <h2 className="form-title">Analyze Your Purchase</h2>
-        
-        <div className="form-group">
-          <label htmlFor="itemName">Item Name:</label>
-          <input
-            id="itemName"
-            type="text"
-            value={itemName}
-            onChange={(e) => setItemName(e.target.value)}
-            placeholder={imageFile ? "Identifying..." : "What are you considering buying?"}
-            disabled={loading}
-            className="input-field"
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="itemCost">Cost ($):</label>
-          <input
-            id="itemCost"
-            type="number"
-            value={itemCost}
-            onChange={(e) => setItemCost(e.target.value)}
-            placeholder="How much does it cost?"
-            disabled={loading}
-            className="input-field"
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="purpose">Purpose (optional):</label>
-          <input
-            id="purpose"
-            type="text"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            placeholder="What will you use it for?"
-            disabled={loading}
-            className="input-field"
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="frequency">Frequency of Use (optional):</label>
-          <select 
-            id="frequency"
-            value={frequency} 
-            onChange={(e) => setFrequency(e.target.value)}
-            disabled={loading}
-            className="select-field"
-          >
-            <option value="">Select frequency...</option>
-            <option value="Daily">Daily</option>
-            <option value="Weekly">Weekly</option>
-            <option value="Monthly">Monthly</option>
-            <option value="Rarely">Rarely</option>
-            <option value="One-time">One-time use</option>
-          </select>
-        </div>
-
-        {/* Image Capture Section - Now positioned above the Analyze button */}
-        <div className="image-capture-section">
-          {imageCapturing ? (
-            <div className="camera-container">
-              <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                className="camera-preview"
-              />
-              <div className="camera-controls">
-                <button 
-                  type="button" 
-                  onClick={captureImage} 
-                  className="capture-btn"
-                >
-                  <span className="capture-icon">📸</span>
-                </button>
-                <button 
-                  type="button" 
-                  onClick={cancelCapture} 
-                  className="cancel-btn"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : imagePreview ? (
-            <div className="image-preview-container">
-              <img src={imagePreview} alt="Item preview" className="item-preview" />
-              <button 
-                type="button" 
-                onClick={clearImage} 
-                className="clear-btn"
-              >
-                Remove Image
-              </button>
-            </div>
-          ) : (
-            <div className="image-capture-controls">
-              <button 
-                type="button" 
-                onClick={startCamera} 
-                className="camera-btn"
-              >
-                <span className="camera-icon">📷</span>
-                Capture Image of Item
-              </button>
-              <span className="or-divider">or</span>
-              <button 
-                type="button" 
-                className="upload-btn" 
-                onClick={triggerFileInput}
-              >
-                Upload Image
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                className="file-input"
-                hidden
-              />
-            </div>
-          )}
-          <canvas ref={canvasRef} style={{ display: 'none' }} />
-        </div>
-
-        <button 
-          onClick={analyzePurchase} 
-          disabled={loading} 
-          className="should-i-buy-btn"
-        >
-          {loading ? (
-            <span className="loading-text">
-              <span className="loading-spinner"></span>
-              Analyzing
-            </span>
-          ) : (
-            "Should I Buy It?"
-          )}
-        </button>
-      </div>
-
-      {/* Results Window */}
-      {messages.length > 0 && (
-        <div className="results-window" ref={resultsRef}>
-          <h2 className="results-title">
-            <span className="results-icon">💡</span> 
-            Analysis Results
-          </h2>
-          
-          <div className="analysis-container">
-            {messages.map((msg, i) => {
-              // Display differently based on sender
-              if (msg.sender === "Munger" && msg.formatted) {
-                // Format Munger's response as a decision card
-                return (
-                  <div key={i} className="decision-card">
-                    <div className={`decision-header ${msg.formatted.decision === "Buy" ? "buy" : "dont-buy"}`}>
-                      <div className="decision-icon">
-                        {msg.formatted.decision === "Buy" ? "✅" : 
-                         msg.formatted.decision === "Don't Buy" ? "❌" : "⚠️"}
-                      </div>
-                      <h3 className="decision-title">{msg.formatted.decision}</h3>
-                    </div>
-                    <div className="decision-body">
-                      <p>{msg.formatted.reasoning}</p>
-                      <div className="signature">
-                        <span className="signature-icon">👨‍💼</span>
-                        <span className="signature-text">— Charlie Munger</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              } else {
-                // Standard message display for other senders
-                return (
-                  <div key={i} className={`message ${msg.sender.toLowerCase()}`}>
-                    <div className="message-header">
-                      {msg.sender === "System" ? "💡" : 
-                       msg.sender === "You" ? "🧑" : ""}
-                      <strong>{msg.sender}</strong>
-                    </div>
-                    <div className="message-body">{msg.text}</div>
-                  </div>
-                );
-              }
-            })}
-          </div>
-          
-          {loading && (
-            <div className="loading-message">
-              <span className="loading-dots"></span>
-              Analyzing your purchase...
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer className="app-footer">
-        <p>Based on Charlie Munger's investment principles and decision-making framework</p>
-      </footer>
-    </div>) => {
+    return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -573,7 +317,7 @@ function PurchaseAdvisor() {
       }
 
       // Format the message about the purchase
-      const purchaseMessage = `Should I buy: ${recognizedItemName} for ${itemCost}${
+      const purchaseMessage = `Should I buy: ${recognizedItemName} for $${itemCost}${
         purpose ? `, Purpose: ${purpose}` : ""
       }${frequency ? `, Frequency of use: ${frequency}` : ""}`;
 
@@ -586,7 +330,7 @@ function PurchaseAdvisor() {
       // Create a prompt that includes financial profile data if available
       let analysisPrompt = `Act as Charlie Munger, Warren Buffett's business partner, and analyze this purchase decision: 
       Item: ${recognizedItemName}
-      Cost: ${itemCost}
+      Cost: $${itemCost}
       ${purpose ? `Purpose: ${purpose}` : ""}
       ${frequency ? `Frequency of use: ${frequency}` : ""}
       `;
@@ -597,10 +341,10 @@ function PurchaseAdvisor() {
         const s = fp.summary;
         
         analysisPrompt += `\nFinancial context:
-        - Monthly Net Income: ${s.monthlyNetIncome.toFixed(2)}
+        - Monthly Net Income: $${s.monthlyNetIncome.toFixed(2)}
         - Debt-to-Income Ratio: ${s.debtToIncomeRatio.toFixed(1)}%
         - Credit Utilization: ${s.creditUtilization.toFixed(1)}%
-        - Net Worth: ${s.netWorth.toFixed(2)}
+        - Net Worth: $${s.netWorth.toFixed(2)}
         - Emergency Fund: ${s.emergencyFundMonths.toFixed(1)} months
         - Risk Tolerance: ${fp.riskTolerance}
         - Purchase Timeframe: ${fp.purchaseTimeframe}
@@ -648,3 +392,266 @@ function PurchaseAdvisor() {
     } finally {
       setLoading(false);
     }
+  };
+
+  return (
+    <div className="App">
+      {/* Header Bar */}
+      <header className="top-header">
+        <div className="logo">
+          <span className="logo-icon">💰</span>
+          Munger Purchase Advisor
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <div className="hero-section">
+        <h1 className="hero-title">Should You Buy It?</h1>
+        <p className="hero-subtitle">
+          Get Charlie Munger's rational advice on your purchasing decisions
+        </p>
+      </div>
+
+      {/* Financial Profile Summary (if available) */}
+      {financialProfile && financialProfile.summary && (
+        <div className="mini-profile">
+          <div className="mini-profile-header">
+            <h3>
+              <span className="profile-icon">👤</span>
+              Your Financial Snapshot
+            </h3>
+          </div>
+          <div className="mini-profile-stats">
+            <div className="mini-stat">
+              <span className="stat-label">Monthly Net:</span>
+              <span className={`stat-value ${financialProfile.summary.monthlyNetIncome >= 0 ? 'positive' : 'negative'}`}>
+                ${financialProfile.summary.monthlyNetIncome.toFixed(0)}
+              </span>
+            </div>
+            <div className="mini-stat">
+              <span className="stat-label">DTI Ratio:</span>
+              <span className={`stat-value ${financialProfile.summary.debtToIncomeRatio < 36 ? 'positive' : financialProfile.summary.debtToIncomeRatio < 43 ? 'warning' : 'negative'}`}>
+                {financialProfile.summary.debtToIncomeRatio.toFixed(0)}%
+              </span>
+            </div>
+            <div className="mini-stat">
+              <span className="stat-label">Emergency:</span>
+              <span className={`stat-value ${financialProfile.summary.emergencyFundMonths >= 3 ? 'positive' : financialProfile.summary.emergencyFundMonths >= 1 ? 'warning' : 'negative'}`}>
+                {financialProfile.summary.emergencyFundMonths.toFixed(1)}mo
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purchase Analysis Form */}
+      <div className="purchase-form">
+        <h2 className="form-title">Analyze Your Purchase</h2>
+        
+        <div className="form-group">
+          <label htmlFor="itemName">Item Name:</label>
+          <input
+            id="itemName"
+            type="text"
+            value={itemName}
+            onChange={(e) => setItemName(e.target.value)}
+            placeholder={imageFile ? "Identifying..." : "What are you considering buying?"}
+            disabled={loading}
+            className="input-field"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="itemCost">Cost ($):</label>
+          <input
+            id="itemCost"
+            type="number"
+            value={itemCost}
+            onChange={(e) => setItemCost(e.target.value)}
+            placeholder="How much does it cost?"
+            disabled={loading}
+            className="input-field"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="purpose">Purpose (optional):</label>
+          <input
+            id="purpose"
+            type="text"
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+            placeholder="What will you use it for?"
+            disabled={loading}
+            className="input-field"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="frequency">Frequency of Use (optional):</label>
+          <select 
+            id="frequency"
+            value={frequency} 
+            onChange={(e) => setFrequency(e.target.value)}
+            disabled={loading}
+            className="select-field"
+          >
+            <option value="">Select frequency...</option>
+            <option value="Daily">Daily</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Rarely">Rarely</option>
+            <option value="One-time">One-time use</option>
+          </select>
+        </div>
+
+        {/* Image Capture Section - Now positioned above the Analyze button */}
+        <div className="image-capture-section">
+          {imageCapturing ? (
+            <div className="camera-container">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className="camera-preview"
+              />
+              <div className="camera-controls">
+                <button 
+                  type="button" 
+                  onClick={captureImage} 
+                  className="capture-btn"
+                >
+                  <span className="capture-icon">📸</span>
+                </button>
+                <button 
+                  type="button" 
+                  onClick={cancelCapture} 
+                  className="cancel-btn"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : imagePreview ? (
+            <div className="image-preview-container">
+              <img src={imagePreview} alt="Item preview" className="item-preview" />
+              <button 
+                type="button" 
+                onClick={clearImage} 
+                className="clear-btn"
+              >
+                Remove Image
+              </button>
+            </div>
+          ) : (
+            <div className="image-capture-controls">
+              <button 
+                type="button" 
+                onClick={startCamera} 
+                className="camera-btn"
+              >
+                <span className="camera-icon">📷</span>
+                Capture Image of Item
+              </button>
+              <span className="or-divider">or</span>
+              <button 
+                type="button" 
+                className="upload-btn" 
+                onClick={triggerFileInput}
+              >
+                Upload Image
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="file-input"
+                hidden
+              />
+            </div>
+          )}
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+        </div>
+
+        <button 
+          onClick={analyzePurchase} 
+          disabled={loading} 
+          className="should-i-buy-btn"
+        >
+          {loading ? (
+            <span className="loading-text">
+              <span className="loading-spinner"></span>
+              Analyzing
+            </span>
+          ) : (
+            "Should I Buy It?"
+          )}
+        </button>
+      </div>
+
+      {/* Results Window */}
+      {messages.length > 0 && (
+        <div className="results-window" ref={resultsRef}>
+          <h2 className="results-title">
+            <span className="results-icon">💡</span> 
+            Analysis Results
+          </h2>
+          
+          <div className="analysis-container">
+            {messages.map((msg, i) => {
+              // Display differently based on sender
+              if (msg.sender === "Munger" && msg.formatted) {
+                // Format Munger's response as a decision card
+                return (
+                  <div key={i} className="decision-card">
+                    <div className={`decision-header ${msg.formatted.decision === "Buy" ? "buy" : "dont-buy"}`}>
+                      <div className="decision-icon">
+                        {msg.formatted.decision === "Buy" ? "✅" : 
+                         msg.formatted.decision === "Don't Buy" ? "❌" : "⚠️"}
+                      </div>
+                      <h3 className="decision-title">{msg.formatted.decision}</h3>
+                    </div>
+                    <div className="decision-body">
+                      <p>{msg.formatted.reasoning}</p>
+                      <div className="signature">
+                        <span className="signature-icon">👨‍💼</span>
+                        <span className="signature-text">— Charlie Munger</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } else {
+                // Standard message display for other senders
+                return (
+                  <div key={i} className={`message ${msg.sender.toLowerCase()}`}>
+                    <div className="message-header">
+                      {msg.sender === "System" ? "💡" : 
+                       msg.sender === "You" ? "🧑" : ""}
+                      <strong>{msg.sender}</strong>
+                    </div>
+                    <div className="message-body">{msg.text}</div>
+                  </div>
+                );
+              }
+            })}
+          </div>
+          
+          {loading && (
+            <div className="loading-message">
+              <span className="loading-dots"></span>
+              Analyzing your purchase...
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="app-footer">
+        <p>Based on Charlie Munger's investment principles and decision-making framework</p>
+      </footer>
+    </div>
+  );
+}
+
+export default PurchaseAdvisor;
