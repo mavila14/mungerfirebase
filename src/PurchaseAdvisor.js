@@ -200,7 +200,7 @@ function PurchaseAdvisor() {
             {
               parts: [
                 {
-                  text: "Identify what this object is in a single short phrase (3-5 words maximum). Then on a new line, provide one interesting fact or detail about this type of item that would be relevant when deciding whether to purchase it. Format your response exactly like this: 'Item: [name of item]\\nFact: [one interesting fact]'"
+                  text: "Identify what this object is in a single short phrase (3-5 words maximum). Then on a new line, provide one interesting fact or detail about this type of item that would be relevant when deciding whether to purchase it. Format your response exactly like this: 'Item: [name of item]\nFact: [one interesting fact]'"
                 },
                 {
                   inlineData: {
@@ -237,7 +237,8 @@ function PurchaseAdvisor() {
   // Format Munger's response for better display
   const formatMungerResponse = (text) => {
     // Extract decision and reasoning
-    const buyMatch = text.match(/^(Buy|Don't Buy|Don't buy)[\s\:\.\,]+(.*)/i);
+    // Fixed unnecessary escape characters in the regex character class
+    const buyMatch = text.match(/^(Buy|Don't Buy|Don't buy)[\s:.,]+(.*)/i);
     
     if (buyMatch) {
       const decision = buyMatch[1].trim();
